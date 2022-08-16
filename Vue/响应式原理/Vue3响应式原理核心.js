@@ -263,7 +263,7 @@
 // product.price = 10
 // console.log(`total: ${total}, salePrice: ${salePrice}`) // total: 20, salePrice: 8, 由于salePrice不是响应式的，total没有更新
 
-/***** 构造ref(1. 使用reactive 2. 使用对象访问器object accessors) ******/
+/***** 构造ref(1. 使用reactive 2. 使用对象访问器object accessors(源码中使用)) ******/
 /********************* V7 **************************/
 const reactive = (target) => {
     const handler = {
@@ -283,26 +283,26 @@ const reactive = (target) => {
 }
 
 // 1. 使用reactive
-const ref = (initValue) => {
-    return reactive({ value: initValue })
-}
-
-// 2. 使用对象访问器object accessors
-// const ref = (raw) => {
-//     const r = {
-//         get value() {
-//             track(r, 'value')
-//             return raw
-//         },
-//         set value(newVal) {
-//             if (newVal === raw) return
-//
-//             raw = newVal
-//             trigger(r, 'value')
-//         }
-//     }
-//     return r
+// const ref = (initValue) => {
+//     return reactive({ value: initValue })
 // }
+
+// 2. 使用对象访问器object accessors(源码方式，优点是除了value，添加其他东西的操作空间更大)
+const ref = (raw) => {
+    const r = {
+        get value() {
+            track(r, 'value')
+            return raw
+        },
+        set value(newVal) {
+            if (newVal === raw) return
+
+            raw = newVal
+            trigger(r, 'value')
+        }
+    }
+    return r
+}
 
 const targetMap = new WeakMap(); // WeakMap可以使用Object作为key
 let product = reactive({ price: 5, quantity: 2 })
