@@ -11,7 +11,7 @@ function reactive (target) {
         },
         set (target, key, value, receiver) {
             console.log(`将${key}属性由${target[key]}改变为${value}`);
-            Reflect.set(target, key, value, receiver);
+            return Reflect.set(target, key, value, receiver);
         }
     };
     return new Proxy(target, handler);

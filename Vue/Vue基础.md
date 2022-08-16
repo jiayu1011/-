@@ -69,8 +69,20 @@ const data = {
     name: {
         value: "123"
     },
-    age: 189
+    age: 189,
+    arr: [1, 2, 3],
 };
+
+const oldArrayProto = Array.prototype;
+const newArrayProto = Object.create(oldArrayProto);
+const arrayMethods = ["push", "pop", "shift", "unshift", "splice"];
+arrayMethods.forEach((method) => {
+    newArrayProto[method] = function () {
+        // 绑定到Array.prototype上的方法，相当于加一层拦截器，Vue3中用Proxy
+        console.log("更新视图操作...")
+        oldArrayProto[method].call(this, ...arguments);
+    }
+});
 
 function observer (target) {
     if (typeof target !== "object" || target === null) {
@@ -78,24 +90,27 @@ function observer (target) {
     }
     for (const key in target) {
         if (typeof target[key] === "object") {
-            // 递归深度监听，处理嵌套对象
-            observer(target[key]);
+            if (Array.isArray(target[key])) {
+                target[key].__proto__ = newArrayProto;
+            } else {
+                // 递归深度监听，处理嵌套对象
+                observer(target[key]);
+            }
         } else {
-            defineReactive(target, key, target[key]);
+            defineReactive(target, key);
         }
     }
 }
 
 // 响应式数据处理
-function defineReactive (target, key, value) {
+function defineReactive (target, key) {
     Object.defineProperty(target, key, {
         get () {
-            return value;
+            return target[key];
         },
         set (newValue) {
-            if (newValue === value) return;
-            value = newValue;
-            console.log("更新视图...");
+            target[key] = newValue;
+            console.log("更新视图操作...");
         }
     })
 }
@@ -103,7 +118,7 @@ function defineReactive (target, key, value) {
 // 变成响应式数据
 observer(data);
 
-data.name.value = "qwe"; // 触发视图更新...
+data.arr.pop();
 ```
 
 局限性：
@@ -118,7 +133,7 @@ data.name.value = "qwe"; // 触发视图更新...
 
 ### Vue3
 
-##### Proxy实现
+##### 实现(基于effect, track, trigger, Proxy的发布-订阅模式)
 
 ```js
 const data = {
@@ -160,12 +175,15 @@ console.log(proxyData.hobby);
 
 
 
-##### 核心实现(基于effect, track, trigger的发布-订阅模式)
+##### 为什么在Proxy拦截的get/set中使用Reflect.get/set替代target[key]?
 
-```js
-```
+简单来说，是为了控制target中this的指向，确保目标代理对象中访问器（getter/setter）使用this时指向的是被Proxy包过的代理对象而非原始对象（指向原始对象无法实现响应式）。Proxy中receiver的作用类似于this，传给Reflect后this就会指向Proxy代理对象，从而形成响应式的逻辑闭环。
+
+**总而言之，Proxy是为了形成代理可以监听到get set，reflect是为了控制this保证监听一定能触发**
 
 
+
+##### 
 
 
 

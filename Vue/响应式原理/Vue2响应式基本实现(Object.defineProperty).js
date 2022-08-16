@@ -37,12 +37,12 @@ function observer (target) {
 
 // 响应式数据处理
 function defineReactive (target, key) {
+    // 使用访问器
     Object.defineProperty(target, key, {
         get () {
             return target[key];
         },
         set (newValue) {
-            if (newValue === target[key]) return;
             target[key] = newValue;
             console.log("更新视图操作...");
         }
