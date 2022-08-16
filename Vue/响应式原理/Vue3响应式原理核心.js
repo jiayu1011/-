@@ -5,9 +5,9 @@
 // // set不允许重复值，即保证effect的唯一性，dep为依赖集
 // const dep = new Set()
 //
-// const effect = () => { total = price * quantity }
-// const track = () => { dep.add(effect) }
-// const trigger = () => { dep.forEach(effect => effect()) }
+// function effect () { total = price * quantity }
+// function track () { dep.add(effect) }
+// function trigger () => { dep.forEach(effect => effect()) }
 //
 // track()
 // console.log(total)
@@ -25,11 +25,11 @@
 // const depsMap = new Map()
 // let total = 0
 //
-// const effect = () => {
+// function effect () {
 //     total = product.price * product.quantity
 // }
 //
-// const track = (key) => {
+// function track (key) {
 //     let dep = depsMap.get(key) // 获取对象中某个属性的依赖集
 //     if (!dep) {
 //         dep = new Set() // 若没有依赖集，则为之创建新的空集
@@ -38,7 +38,7 @@
 //     dep.add(effect)
 // }
 //
-// const trigger = (key) => {
+// function trigger (key) {
 //     let dep = depsMap.get(key)
 //     if (!dep) return
 //     dep.forEach(effect => effect())
@@ -56,11 +56,11 @@
 // let product = { price: 5, quantity: 2 }
 // let total = 0
 //
-// const effect = () => {
+// function effect () {
 //     total = product.price * product.quantity
 // }
 //
-// const track = (target, key) => {
+// function track (target, key) {
 //     let depsMap = targetMap.get(target)
 //     if (!depsMap) {
 //         targetMap.set(target, (depsMap = new Map()))
@@ -73,7 +73,7 @@
 //     dep.add(effect)
 // }
 //
-// const trigger = (target, key) => {
+// function trigger (target, key) {
 //     let depsMap = targetMap.get(target)
 //     if (!depsMap) return
 //     let dep = depsMap.get(key)
@@ -91,7 +91,11 @@
 
 /**** 如何对getter和setter进行拦截？Proxy/Reflect *****/
 /********************* V4 **************************/
-// const reactive = (target) => {
+// const targetMap = new WeakMap(); // WeakMap可以使用Object作为key
+// let product = reactive({ price: 5, quantity: 2 })
+// let total = 0
+//
+// function reactive (target) {
 //     const handler = {
 //         get(target, key, receiver) {
 //             // 将Proxy中的receiver传入Reflect，保证Reflect中的this指向的是Proxy代理的对象
@@ -105,15 +109,11 @@
 //     return new Proxy(target, handler)
 // }
 //
-// const targetMap = new WeakMap(); // WeakMap可以使用Object作为key
-// let product = reactive({ price: 5, quantity: 2 })
-// let total = 0
-//
-// const effect = () => {
+// function effect () {
 //     total = product.price * product.quantity
 // }
 //
-// const track = (target, key) => {
+// function track (target, key) {
 //     let depsMap = targetMap.get(target)
 //     if (!depsMap) {
 //         targetMap.set(target, depsMap = new Map())
@@ -126,7 +126,7 @@
 //     dep.add(effect)
 // }
 //
-// const trigger = (target, key) => {
+// function trigger (target, key) {
 //     let depsMap = targetMap.get(target)
 //     if (!depsMap) return
 //     let dep = depsMap.get(key)
@@ -146,7 +146,11 @@
 /********** 属性被get时，触发track方法 *****************/
 /****** 属性被set时，（重点）先set再触发trigger方法 ******/
 /********************* V5 **************************/
-// const reactive = (target) => {
+// const targetMap = new WeakMap(); // WeakMap可以使用Object作为key
+// let product = reactive({ price: 5, quantity: 2 })
+// let total = 0
+//
+// function reactive (target) {
 //     const handler = {
 //         get(target, key, receiver) {
 //             track(target, key) // 属性被get时，触发track方法
@@ -163,15 +167,12 @@
 //     return new Proxy(target, handler)
 // }
 //
-// const targetMap = new WeakMap(); // WeakMap可以使用Object作为key
-// let product = reactive({ price: 5, quantity: 2 })
-// let total = 0
 //
-// const effect = () => {
+// function effect () {
 //     total = product.price * product.quantity
 // }
 //
-// const track = (target, key) => {
+// function track (target, key) {
 //     let depsMap = targetMap.get(target)
 //     if (!depsMap) {
 //         targetMap.set(target, depsMap = new Map())
@@ -184,7 +185,7 @@
 //     dep.add(effect)
 // }
 //
-// const trigger = (target, key) => {
+// function trigger (target, key) {
 //     let depsMap = targetMap.get(target)
 //     if (!depsMap) return
 //     let dep = depsMap.get(key)
@@ -200,7 +201,13 @@
 
 /****** 引入activeEffect, 将effect重构为传入函数的形式 **/
 /********************* V6 **************************/
-// const reactive = (target) => {
+// const targetMap = new WeakMap(); // WeakMap可以使用Object作为key
+// let activeEffect = null
+// let product = reactive({ price: 5, quantity: 2 })
+// let salePrice = 0
+// let total = 0
+//
+// function reactive (target) {
 //     const handler = {
 //         get(target, key, receiver) {
 //             track(target, key) // 属性被get时，触发track方法
@@ -217,20 +224,13 @@
 //     return new Proxy(target, handler)
 // }
 //
-// const targetMap = new WeakMap(); // WeakMap可以使用Object作为key
-// let product = reactive({ price: 5, quantity: 2 })
-// let salePrice = 0
-// let total = 0
-//
-// let activeEffect = null
-//
-// const effect = (eff) => {
+// function effect (eff) {
 //     activeEffect = eff // set activeEffect
 //     activeEffect() // run it
 //     activeEffect = null // unset activeEffect
 // }
 //
-// const track = (target, key) => {
+// function track (target, key) {
 //     if (!activeEffect) return
 //
 //     let depsMap = targetMap.get(target)
@@ -245,7 +245,7 @@
 //     dep.add(activeEffect)
 // }
 //
-// const trigger = (target, key) => {
+// function trigger (target, key) {
 //     let depsMap = targetMap.get(target)
 //     if (!depsMap) return
 //     let dep = depsMap.get(key)
@@ -265,7 +265,101 @@
 
 /***** 构造ref(1. 使用reactive 2. 使用对象访问器object accessors(源码中使用)) ******/
 /********************* V7 **************************/
-const reactive = (target) => {
+// const targetMap = new WeakMap(); // WeakMap可以使用Object作为key
+// let activeEffect = null
+// let product = reactive({ price: 5, quantity: 2 })
+// let salePrice = ref(0)
+// let total = 0
+//
+// function reactive (target) {
+//     const handler = {
+//         get(target, key, receiver) {
+//             track(target, key) // 属性被get时，触发track方法
+//             return Reflect.get(target, key, receiver) // 将Proxy中的receiver传入Reflect，保证Reflect中的this指向的是Proxy代理的对象
+//         },
+//         set(target, key, value, receiver) {
+//             if (target[key] === value) return
+//             Reflect.set(target, key, value, receiver)
+//             // 属性被set后（重点），调用trigger方法触发依赖更新
+//             // FIXME: 一定要先Reflect.set再trigger，否则trigger触发的effect使用的值是更新前的
+//             trigger(target, key)
+//         }
+//     }
+//     return new Proxy(target, handler)
+// }
+//
+// // 1. 使用reactive
+// // function ref (initValue) {
+// //     return reactive({ value: initValue })
+// // }
+//
+// // 2. 使用对象访问器object accessors(源码方式，优点是除了value，添加其他东西的操作空间更大)
+// function ref (raw) {
+//     const r = {
+//         get value() {
+//             track(r, 'value')
+//             return raw
+//         },
+//         set value(newVal) {
+//             if (newVal === raw) return
+//
+//             raw = newVal
+//             trigger(r, 'value')
+//         }
+//     }
+//     return r
+// }
+//
+// function effect (eff) {
+//     activeEffect = eff // set activeEffect
+//     activeEffect() // run it
+//     activeEffect = null // unset activeEffect
+// }
+//
+// function track (target, key) {
+//     if (!activeEffect) return
+//
+//     let depsMap = targetMap.get(target)
+//     if (!depsMap) {
+//         targetMap.set(target, depsMap = new Map())
+//     }
+//     let dep = depsMap.get(key)
+//     if (!dep) {
+//         depsMap.set(key, dep = new Set())
+//     }
+//
+//     dep.add(activeEffect)
+// }
+//
+// function trigger (target, key) {
+//     let depsMap = targetMap.get(target)
+//     if (!depsMap) return
+//     let dep = depsMap.get(key)
+//     if (!dep) return
+//
+//     dep.forEach(effect => effect())
+// }
+//
+//
+// effect(() => { total = salePrice.value * product.quantity }) // 通过传参的方式执行副作用函数
+// effect(() => { salePrice.value = product.price * 0.8 }) // 通过传参的方式执行副作用函数
+//
+// console.log(`total: ${total}, salePrice: ${salePrice.value}`) // total: 8, salePrice: 4
+// product.quantity = 5
+// console.log(`total: ${total}, salePrice: ${salePrice.value}`) // total: 20, salePrice: 4
+// product.price = 10
+// console.log(`total: ${total}, salePrice: ${salePrice.value}`) // total: 40, salePrice: 8, salePrice和total实现了响应式更新
+
+
+/***************** 构造computed *********************/
+/********************* V8 **************************/
+const targetMap = new WeakMap(); // WeakMap可以使用Object作为key
+let activeEffect = null
+let product = reactive({ price: 5, quantity: 2 })
+let salePrice = computed(() => product.price * 0.8)
+let total = computed(() => salePrice.value * product.quantity)
+
+function reactive (target) {
     const handler = {
         get(target, key, receiver) {
             track(target, key) // 属性被get时，触发track方法
@@ -283,12 +377,12 @@ const reactive = (target) => {
 }
 
 // 1. 使用reactive
-// const ref = (initValue) => {
+// function ref (initValue) {
 //     return reactive({ value: initValue })
 // }
 
 // 2. 使用对象访问器object accessors(源码方式，优点是除了value，添加其他东西的操作空间更大)
-const ref = (raw) => {
+function ref (raw) {
     const r = {
         get value() {
             track(r, 'value')
@@ -304,20 +398,19 @@ const ref = (raw) => {
     return r
 }
 
-const targetMap = new WeakMap(); // WeakMap可以使用Object作为key
-let product = reactive({ price: 5, quantity: 2 })
-let salePrice = ref(0)
-let total = 0
+function computed (fn) {
+    const res = ref()
+    effect(() => res.value = fn())
+    return res
+}
 
-let activeEffect = null
-
-const effect = (eff) => {
+function effect (eff) {
     activeEffect = eff // set activeEffect
     activeEffect() // run it
     activeEffect = null // unset activeEffect
 }
 
-const track = (target, key) => {
+function track (target, key) {
     if (!activeEffect) return
 
     let depsMap = targetMap.get(target)
@@ -332,7 +425,7 @@ const track = (target, key) => {
     dep.add(activeEffect)
 }
 
-const trigger = (target, key) => {
+function trigger (target, key) {
     let depsMap = targetMap.get(target)
     if (!depsMap) return
     let dep = depsMap.get(key)
@@ -342,11 +435,8 @@ const trigger = (target, key) => {
 }
 
 
-effect(() => { total = salePrice.value * product.quantity }) // 通过传参的方式执行副作用函数
-effect(() => { salePrice.value = product.price * 0.8 }) // 通过传参的方式执行副作用函数
-
-console.log(`total: ${total}, salePrice: ${salePrice.value}`) // total: 8, salePrice: 4
+console.log(`total: ${total.value}, salePrice: ${salePrice.value}`) // total: 8, salePrice: 4
 product.quantity = 5
-console.log(`total: ${total}, salePrice: ${salePrice.value}`) // total: 20, salePrice: 4
+console.log(`total: ${total.value}, salePrice: ${salePrice.value}`) // total: 20, salePrice: 4
 product.price = 10
-console.log(`total: ${total}, salePrice: ${salePrice.value}`) // total: 40, salePrice: 8, salePrice和total实现了响应式更新
+console.log(`total: ${total.value}, salePrice: ${salePrice.value}`) // total: 40, salePrice: 8, salePrice和total实现了响应式更新

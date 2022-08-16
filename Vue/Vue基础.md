@@ -49,18 +49,22 @@ MVC则是单向的数据传递
 
 
 
+## **Vue的响应式原理
 
+### 什么是响应式？
 
-## **Vue的响应式原理（拦截getter/setter)
+数据驱动视图的自动更新，修改数据也会更新用到这份数据的视图
+
+### Vue2/Vue3实现响应式的区别
 
 - Vue2的响应式是基于`Object.defineProperty`实现的
 - Vue3的响应式是基于ES6的`Proxy`来实现的
 
 ### Vue2
 
-##### 核心
+##### 核心思想
 
-`Obejct.defineProperty`的`get`和`set`函数
+用`Obejct.defineProperty`为对象每个属性设置getter/setter实现数据拦截
 
 ##### 实现
 
@@ -131,46 +135,100 @@ data.arr.pop();
 
 
 
-### Vue3
+### Vue3（读了源码的getter, track等方法）
 
-##### 实现(基于effect, track, trigger, Proxy的发布-订阅模式)
+##### 核心思想
+
+基于effect, track, trigger, Proxy的发布-订阅模式，用es6的Proxy+Reflect实现数据拦截
+
+##### 实现
 
 ```js
-const data = {
-    name: "xin",
-    age: 18,
-};
-
-function reactive (target) {
+const reactive = (target) => {
     const handler = {
-        get (target, key, receiver) {
-            console.log(`访问了${key}属性`);
-            return Reflect.get(target, key, receiver);
+        get(target, key, receiver) {
+            track(target, key) // 属性被get时，触发track方法
+            return Reflect.get(target, key, receiver) // 将Proxy中的receiver传入Reflect，保证Reflect中的this指向的是Proxy代理的对象
         },
-        set (target, key, value, receiver) {
-            console.log(`将${key}属性由${target[key]}改变为${value}`);
-            Reflect.set(target, key, value, receiver);
+        set(target, key, value, receiver) {
+            if (target[key] === value) return
+            Reflect.set(target, key, value, receiver)
+            // 属性被set后（重点），调用trigger方法触发依赖更新
+            // FIXME: 一定要先Reflect.set再trigger，否则trigger触发的effect使用的值是更新前的
+            trigger(target, key)
         }
-    };
-    return new Proxy(target, handler);
+    }
+    return new Proxy(target, handler)
 }
 
-const proxyData = reactive(data);
-console.log(proxyData.name);
-// 访问了name属性
-// xin
-proxyData.name = "qwe";
-// 将name属性由xin改变为qwe
-console.log(proxyData.name);
-// 访问了name属性
-// qwe
+// 1. 使用reactive
+// const ref = (initValue) => {
+//     return reactive({ value: initValue })
+// }
 
-/***** 对象新增属性 *****/
-proxyData.hobby = "basketball";
-// 将hobby属性由undefined改变为basketball
-console.log(proxyData.hobby);
-// 访问了hobby属性
-// basketball
+// 2. 使用对象访问器object accessors(源码方式，优点是除了value，添加其他东西的操作空间更大)
+const ref = (raw) => {
+    const r = {
+        get value() {
+            track(r, 'value')
+            return raw
+        },
+        set value(newVal) {
+            if (newVal === raw) return
+
+            raw = newVal
+            trigger(r, 'value')
+        }
+    }
+    return r
+}
+
+const targetMap = new WeakMap(); // WeakMap可以使用Object作为key
+let product = reactive({ price: 5, quantity: 2 })
+let salePrice = ref(0)
+let total = 0
+
+let activeEffect = null
+
+const effect = (eff) => {
+    activeEffect = eff // set activeEffect
+    activeEffect() // run it
+    activeEffect = null // unset activeEffect
+}
+
+const track = (target, key) => {
+    if (!activeEffect) return
+
+    let depsMap = targetMap.get(target)
+    if (!depsMap) {
+        targetMap.set(target, depsMap = new Map())
+    }
+    let dep = depsMap.get(key)
+    if (!dep) {
+        depsMap.set(key, dep = new Set())
+    }
+
+    dep.add(activeEffect)
+}
+
+const trigger = (target, key) => {
+    let depsMap = targetMap.get(target)
+    if (!depsMap) return
+    let dep = depsMap.get(key)
+    if (!dep) return
+
+    dep.forEach(effect => effect())
+}
+
+
+effect(() => { total = salePrice.value * product.quantity }) // 通过传参的方式执行副作用函数
+effect(() => { salePrice.value = product.price * 0.8 }) // 通过传参的方式执行副作用函数
+
+console.log(`total: ${total}, salePrice: ${salePrice.value}`) // total: 8, salePrice: 4
+product.quantity = 5
+console.log(`total: ${total}, salePrice: ${salePrice.value}`) // total: 20, salePrice: 4
+product.price = 10
+console.log(`total: ${total}, salePrice: ${salePrice.value}`) // total: 40, salePrice: 8, salePrice和total实现了响应式更新
 ```
 
 
@@ -180,10 +238,6 @@ console.log(proxyData.hobby);
 简单来说，是为了控制target中this的指向，确保目标代理对象中访问器（getter/setter）使用this时指向的是被Proxy包过的代理对象而非原始对象（指向原始对象无法实现响应式）。Proxy中receiver的作用类似于this，传给Reflect后this就会指向Proxy代理对象，从而形成响应式的逻辑闭环。
 
 **总而言之，Proxy是为了形成代理可以监听到get set，reflect是为了控制this保证监听一定能触发**
-
-
-
-##### 
 
 
 
