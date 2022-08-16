@@ -235,7 +235,7 @@ Vue2.x  引入虚拟DOM，更重视**js的动态性**，手写render function，
 
 #### Diff算法简述（虚拟DOM的核心）
 
-![diff](D:\个人资料\面试相关\前端\准备\Vue\diff.png)
+![diff](./diff.png)
 
 ##### 流程
 
@@ -260,7 +260,7 @@ Vue2.x  引入虚拟DOM，更重视**js的动态性**，手写render function，
 
 #### h函数（生成VNode）
 
-![h函数](D:\个人资料\面试相关\前端\准备\Vue\h函数.png)
+![h函数](./h函数.png)
 
 sel：选择器，data：属性值，children：子节点
 
