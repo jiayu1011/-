@@ -139,7 +139,7 @@ data.arr.pop();
 
 ##### 核心思想
 
-基于effect, track, trigger, Proxy的发布-订阅模式，用es6的Proxy+Reflect实现数据拦截
+基于effect, track, trigger, Proxy的发布-订阅模式，用es6的Proxy+Reflect实现数据拦截，自动收集依赖+自动通知更新
 
 ##### 实现
 
@@ -372,6 +372,12 @@ export default defineComponent({
 	}
 })
 ```
+
+###### setup函数的执行时期
+
+![Vue2,3生命周期对比](./Vue2,3生命周期对比.png)
+
+
 
 
 
